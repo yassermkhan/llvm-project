@@ -6,6 +6,7 @@ import sys
 
 import lit.reports
 import lit.util
+import lit.wtt
 
 
 @enum.unique
@@ -320,6 +321,11 @@ def parse_args():
         type=lit.reports.TimeTraceReport,
         help="Write Chrome tracing compatible JSON to the specified file",
     )
+    execution_group.add_argument(
+        "--wtt-log",
+        type=lit.wtt.WttReport,
+        help="Write a WTT (.wtl) log file for Windows test infrastructure consumption",
+    )
     # This option only exists for the benefit of LLVM's Buildkite CI pipelines.
     # As soon as it is not needed, it should be removed. Its help text would be:
     # When enabled, lit will add a unique element to the output file name,
@@ -441,6 +447,15 @@ def parse_args():
         action="store_true",
     )
     selection_group.add_argument(
+        "--requires-group",
+        metavar="GROUP",
+        help="Only run tests whose REQUIRES matches the given group, and skip "
+        "the REQUIRES feature availability check (the caller is responsible "
+        'for scheduling on capable devices). Use "Base" to select tests '
+        "with no REQUIRES line.",
+        default=os.environ.get("LIT_REQUIRES_GROUP"),
+    )
+    selection_group.add_argument(
         "--xfail",
         metavar="LIST",
         type=_semicolon_list,
@@ -541,6 +556,7 @@ def parse_args():
                 opts.xunit_xml_output,
                 opts.resultdb_output,
                 opts.time_trace_output,
+                opts.wtt_log,
             ],
         )
     )

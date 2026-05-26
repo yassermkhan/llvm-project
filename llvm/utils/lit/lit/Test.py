@@ -285,6 +285,9 @@ class Test:
         # The previous test failure state, if applicable.
         self.previous_failure = False
 
+        # If set, only run this test if its REQUIRES matches the group.
+        self.requires_group = None
+
         # The previous test elapsed time, if applicable.
         self.previous_elapsed = 0.0
 

@@ -1760,6 +1760,13 @@ def parseIntegratedTestScript(test, additional_parsers=[], require_script=True):
     If 'require_script' is False an empty script
     may be returned. This can be used for test formats where the actual script
     is optional or ignored.
+
+    If the test has a 'requires_group' set (via --requires-group), only tests
+    whose REQUIRES exactly matches the group will run. Tests that do not match
+    are marked UNSUPPORTED. Use "Base" to select tests with no REQUIRES line.
+    When --requires-group is set, the REQUIRES feature availability check is
+    skipped since the caller is responsible for scheduling tests on capable
+    devices. The UNSUPPORTED platform check still applies.
     """
     # Parse the test sources and extract test properties
     try:
@@ -1776,17 +1783,37 @@ def parseIntegratedTestScript(test, additional_parsers=[], require_script=True):
         return lit.Test.Result(Test.EXCLUDED, "excluding XFAIL tests")
     test.requires += parsed["REQUIRES:"] or []
     test.unsupported += parsed["UNSUPPORTED:"] or []
+
+    # Enforce --requires-group: skip tests not matching the requested group.
+    if test.requires_group is not None:
+        if test.requires_group == "Base":
+            if test.requires:
+                return lit.Test.Result(
+                    Test.UNSUPPORTED,
+                    "Test has REQUIRES but --requires-group=Base selects only tests without REQUIRES",
+                )
+        else:
+            group_features = {f.strip() for f in test.requires_group.split(",")}
+            test_features = set()
+            for r in test.requires:
+                test_features.update(f.strip() for f in r.split(","))
+            if group_features != test_features:
+                return lit.Test.Result(
+                    Test.UNSUPPORTED,
+                    "Test REQUIRES does not match --requires-group '%s'" % test.requires_group,
+                )
     if parsed["ALLOW_RETRIES:"]:
         test.allowed_retries = parsed["ALLOW_RETRIES:"][0]
 
-    # Enforce REQUIRES:
-    missing_required_features = test.getMissingRequiredFeatures()
-    if missing_required_features:
-        msg = ", ".join(missing_required_features)
-        return lit.Test.Result(
-            Test.UNSUPPORTED,
-            "Test requires the following unavailable " "features: %s" % msg,
-        )
+    # Enforce REQUIRES: (skip when --requires-group is set, the caller handles feature scheduling)
+    if test.requires_group is None:
+        missing_required_features = test.getMissingRequiredFeatures()
+        if missing_required_features:
+            msg = ", ".join(missing_required_features)
+            return lit.Test.Result(
+                Test.UNSUPPORTED,
+                "Test requires the following unavailable " "features: %s" % msg,
+            )
 
     # Enforce UNSUPPORTED:
     unsupported_features = test.getUnsupportedFeatures()

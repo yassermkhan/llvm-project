@@ -247,6 +247,8 @@ def mark_xfail(selected_tests, opts):
             t.xfail_not = True
         if opts.exclude_xfail:
             t.exclude_xfail = True
+        if opts.requires_group:
+            t.requires_group = opts.requires_group
 
 
 def mark_unsupported(selected_tests, opts):
