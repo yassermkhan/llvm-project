@@ -94,10 +94,20 @@ class WttReport(Report):
             )
             file.write("</EndTest>\n")
 
+        if skipped > 0:
+            file.write(
+                '<Msg UserText=%s>\n'
+                % _sanitize_attr(
+                    "%d test(s) were UNSUPPORTED and excluded from results "
+                    "(not in requires group or platform mismatch)." % skipped
+                )
+            )
+            file.write("</Msg>\n")
+
         total = passed + failed
         file.write(
             '<PFRollup Total="%d" Passed="%d" Failed="%d" '
-            'Blocked="0" Warned="0" Skipped="%d" />\n'
-            % (total, passed, failed, skipped)
+            'Blocked="0" Warned="0" Skipped="0" />\n'
+            % (total, passed, failed)
         )
         file.write("</WTT-Logger>\n")
